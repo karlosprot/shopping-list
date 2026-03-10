@@ -27,14 +27,6 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       // Dočasná klička: heslo "slavie" projde bez kontroly v DB
-      if (password === "slavie") {
-        const userEmail = email.trim();
-        if (typeof window !== "undefined") {
-          window.localStorage.setItem("userEmail", userEmail);
-        }
-        router.replace(redirectTo || "/lists");
-        return;
-      }
 
       const { data, error: rpcError } = await supabase.rpc("verify_login", {
         p_email: email.trim(),

@@ -1,4 +1,4 @@
 {
-  "/list/[hash]/page": "app/list/[hash]/page.js",
+  "/login/page": "app/login/page.js",
   "/lists/page": "app/lists/page.js"
 }
