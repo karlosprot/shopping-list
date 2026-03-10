@@ -1,0 +1,41 @@
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+
+export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+
+export type ShoppingList = {
+  id: string;
+  hash: string;
+  name: string;
+  created_at: string;
+  archived_at: string | null;
+  last_modified_at?: string | null;
+  owner_email?: string | null;
+  share_token?: string | null;
+  permission_level?: "read-only" | "edit" | null;
+  is_favorite?: boolean | null;
+};
+
+export type ShoppingItem = {
+  id: string;
+  list_id: string;
+  name: string;
+  checked: boolean;
+  price_info: string | null;
+  created_at: string;
+  position?: number | null;
+  is_favorite?: boolean | null;
+};
+
+export type ItemPrice = {
+  id: string;
+  item_id: string;
+  store_name: string;
+  price: number;
+  quantity: number;
+  quantity_unit: string | null;
+  unit_price: number;
+  created_at: string;
+};
