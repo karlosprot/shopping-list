@@ -10,6 +10,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,7 +27,6 @@ export default function LoginPage() {
     setError(null);
     setSubmitting(true);
     try {
-      // Dočasná klička: heslo "slavie" projde bez kontroly v DB
 
       const { data, error: rpcError } = await supabase.rpc("verify_login", {
         p_email: email.trim(),
@@ -79,13 +79,20 @@ export default function LoginPage() {
         <div>
           <label className="mb-1 block text-sm font-medium text-slate-700">Heslo</label>
           <input
-            type="password"
+            type={showPassword ? "text" : "password"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="current-password"
             className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 placeholder-slate-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
             required
           />
+          <button
+            type="button"
+            className="absolute right-3 top-10 text-slate-400 hover:text-slate-600"
+            onClick={() => setShowPassword(!showPassword)}
+          >
+            {showPassword ? "Skrýt" : "Zobrazit"}
+          </button>
         </div>
 
         {error && (
