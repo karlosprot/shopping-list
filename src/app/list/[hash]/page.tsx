@@ -686,32 +686,39 @@ export default function ListPage() {
               </button>
             )}
             {/* 3. Název + pod ním datum, cena, Kupi */}
-            <div className="flex-1 min-w-0">
-              <div className={`text-slate-800 ${item.checked ? "line-through text-slate-500" : ""}`}>
-                {item.name}
-              </div>
-              <div className="mt-0.5 text-[10px] text-slate-400">
-                Přidáno {formatDateTime(item.created_at)}
-              </div>
-              {minPrices[item.id] !== undefined && (
-                <div className="mt-0.5 text-xs text-slate-500">
-                  cena od{" "}
-                  <span className="font-medium text-slate-700">
-                    {formatCzk(minPrices[item.id].value)} Kč
-                    {minPrices[item.id].unit ? `/${minPrices[item.id].unit}` : ""}
-                  </span>
+            <div className="flex-1 min-w-0 flex flex-col justify-center gap-0">
+  
+              {/* 1. ŘÁDEK: Název položky a čas */}
+              <div className="flex items-baseline gap-x-2">
+                <div className={`font-medium text-slate-800 ${item.checked ? "line-through text-slate-500" : ""}`}>
+                  {item.name}
                 </div>
-              )}
-              {item.price_info && (
-                <a
-                  href={item.price_info}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-0.5 block text-xs text-primary-600 hover:underline truncate"
-                >
-                  Akce na Kupi.cz
-                </a>
-              )}
+                <div className="text-[10px] text-slate-400">
+                  {formatDateTime(item.created_at)}
+                </div>
+              </div>
+
+              {/* 2. ŘÁDEK: Akce na Kupi a cena */}
+              <div className="flex items-center gap-x-2 text-xs">
+                {item.price_info && (
+                  <a
+                    href={item.price_info}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary-600 hover:underline font-medium"
+                  >
+                    Akce na Kupi.cz
+                  </a>
+                )}
+                
+                {minPrices[item.id] !== undefined && (
+                  <span className="text-slate-500">
+                    od <span className="font-semibold text-slate-800">
+                      {formatCzk(minPrices[item.id].value)} Kč{minPrices[item.id].unit ? `/${minPrices[item.id].unit}` : ""}
+                    </span>
+                  </span>
+                )}
+              </div>
             </div>
             <button
               onClick={() => setPriceModalItem(item)}
