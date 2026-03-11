@@ -602,7 +602,7 @@ export default function ListPage() {
         {items.map((item) => (
           <li
             key={item.id}
-            className="group flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
+            className="group flex items-center rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
           >
             {/* Šipky řazení – horní a spodní roh */}
             {canEdit && (
