@@ -264,7 +264,7 @@ export default function ListsPage() {
                   e.stopPropagation();
                   deleteList(list);
                 }}
-                className="ml-3 rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-500"
+                className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-500"
                 aria-label="Smazat seznam"
               >
                 <svg

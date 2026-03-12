@@ -49,8 +49,8 @@ export default function ListPage() {
     return d.toLocaleString("cs-CZ", {
       day: "numeric",
       month: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
+      //hour: "2-digit",
+      //minute: "2-digit",
     });
   }
 
@@ -707,7 +707,7 @@ export default function ListPage() {
                     rel="noopener noreferrer"
                     className="text-primary-600 hover:underline font-medium"
                   >
-                    Akce na Kupi.cz
+                    Kupi.cz
                   </a>
                 )}
                 

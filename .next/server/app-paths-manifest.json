@@ -1,1 +1,4 @@
-{}
+{
+  "/lists/page": "app/lists/page.js",
+  "/list/[hash]/page": "app/list/[hash]/page.js"
+}
