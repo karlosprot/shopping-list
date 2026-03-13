@@ -187,7 +187,6 @@ export default function ListPage() {
 
   useEffect(() => {
     if (!list?.id) return;
-    console.log(list.shopping_lists?.name)
 
     const channel = supabase
       .channel(`list-${hash}`)
