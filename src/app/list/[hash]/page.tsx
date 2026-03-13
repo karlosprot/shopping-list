@@ -56,11 +56,32 @@ export default function ListPage() {
 
   const loadList = useCallback(async () => {
 
+    let userEmail: string | null = null;
+    userEmail = window.localStorage.getItem("userEmail");
+
     const { data: listData } = await supabase
+    .from("list_access")
+    .select(`
+      *,
+      shopping_lists (
+        name,
+        hash,
+        owner_email,
+        archived_at
+      )
+    `)
+    .not("shopping_lists", "is", null)
+    .eq("shopping_lists.hash", hash)
+    .eq("user_email", userEmail)
+    .single();
+
+    console.log(listData)
+
+    /*const { data: listData } = await supabase
       .from("shopping_lists")
       .select("*")
       .eq("hash", hash)
-      .single();
+      .single();*/
 
     if (!listData) {
       setNotFound(true);
@@ -72,13 +93,13 @@ export default function ListPage() {
     setListName(listData.name);
 
     // Zjištění vlastníka a tokenu na klientu
-    let userEmail: string | null = null;
+    /*let userEmail: string | null = null;
     let tokenFromUrl: string | null = null;
     if (typeof window !== "undefined") {
       userEmail = window.localStorage.getItem("userEmail");
       const params = new URLSearchParams(window.location.search);
       tokenFromUrl = params.get("token");
-    }
+    }*/
 
     const ownerEmail = (listData as ShoppingList).owner_email ?? null;
     const isOwnerNow = !ownerEmail || (userEmail !== null && ownerEmail === userEmail);
