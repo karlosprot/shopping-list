@@ -528,10 +528,10 @@ export default function ListPage() {
             <button onClick={() => setEditingName(true)} className="text-left w-full">
               <h1 className="text-xl font-bold text-slate-800 truncate">
                 
-                {list.shopping_lists?.name || "Seznam"}
-                {list.shopping_lists?.created_at && (
+                {list?.shopping_lists?.name || "Seznam"}
+                {list?.shopping_lists?.created_at && (
                   <span className="ml-1 text-sm font-normal text-slate-500">
-                    ({formatDateShort(list.shopping_lists?.created_at)})
+                    ({formatDateShort(list?.shopping_lists?.created_at)})
                   </span>
                 )}
               </h1>
