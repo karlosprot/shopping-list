@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import type { ShoppingList } from "@/lib/supabase";
+//import type { ShoppingList } from "@/lib/supabase";
 
 import type { UserListDashboardItem } from "@/lib/supabase";
 import { nanoid } from "nanoid";
+
+import { useUser } from '@/hooks/useUser';
 
 export default function ListsPage() {
   const router = useRouter();
@@ -16,6 +18,7 @@ export default function ListsPage() {
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const [allBoughtListIds, setAllBoughtListIds] = useState<Set<string>>(new Set());
+  //const { userEmail, loading } = useUser();
 
   function formatListDate(iso: string) {
     const d = new Date(iso);
@@ -25,12 +28,14 @@ export default function ListsPage() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const email = window.localStorage.getItem("userEmail");
-      if (!email) {
+      const userEmail =
+      typeof window !== "undefined" ? window.localStorage.getItem("userEmail") : null;
+
+      if (!userEmail) {
         router.replace("/login?redirectTo=/lists");
         return;
       }
-      setCurrentUserEmail(email);
+      setCurrentUserEmail(userEmail);
     }
 
     loadLists();
@@ -112,14 +117,14 @@ export default function ListsPage() {
 
     const { data: itemsData } = await supabase
       .from("shopping_items")
-      .select("list_id, checked");
+      .select("list_id, is_favorite");
 
     const listIdsWithItems = new Set<string>();
     const listIdsWithUnchecked = new Set<string>();
     for (const row of itemsData || []) {
       const listId = (row as { list_id: string }).list_id;
       listIdsWithItems.add(listId);
-      if (!(row as { checked: boolean }).checked) listIdsWithUnchecked.add(listId);
+      if (!(row as { is_favorite: boolean }).is_favorite) listIdsWithUnchecked.add(listId);
     }
     const allBought = new Set<string>();
     listIdsWithItems.forEach((id) => {
@@ -298,9 +303,12 @@ export default function ListsPage() {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  const next = !list.is_favorite;
+                  const next = !list.is_favorite;                    
+                  console.log(list);
+                  console.log(next);                  
+                  console.log(list.id);
                   supabase
-                    .from("access_list")
+                    .from("list_access")
                     .update({ is_favorite: next })
                     .eq("id", list.id)
                     .then(() => {

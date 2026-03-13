@@ -92,7 +92,6 @@ export default function ListPage() {
 
     setList(listData);
     setListName(listData.shopping_lists?.name);
-    console.log("tu:" + listData.shopping_lists?.name)
 
     // Zjištění vlastníka a tokenu na klientu
     /*let userEmail: string | null = null;
@@ -125,7 +124,7 @@ export default function ListPage() {
       .from("shopping_items")
       .select("*")
       .eq("list_id", listData.list_id)
-      .order("checked", { ascending: true })
+      .order("is_favorite", { ascending: true })
       .order("position", { ascending: true, nullsFirst: true })
       .order("created_at", { ascending: true });
 
@@ -133,13 +132,13 @@ export default function ListPage() {
       const fa = (a as ShoppingItem).is_favorite ? 1 : 0;
       const fb = (b as ShoppingItem).is_favorite ? 1 : 0;
       if (fa !== fb) return fb - fa; // oblíbené nahoru
-      if (a.checked === b.checked) {
+      if (a.bought === b.bought) {
         const pa = (a as ShoppingItem).position ?? 0;
         const pb = (b as ShoppingItem).position ?? 0;
         if (pa !== pb) return pa - pb;
         return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
       }
-      return a.checked ? 1 : -1;
+      return a.bought ? 1 : -1;
     });
     setItems(resolvedItems);
 
@@ -326,15 +325,16 @@ export default function ListPage() {
 
     const maxPosition =
       items
-        .filter((i) => !i.checked)
+        .filter((i) => !i.is_favorite)
         .reduce((max, i) => (i.position != null && i.position > max ? i.position : max), 0) || 0;
 
     const { data, error } = await supabase
       .from("shopping_items")
       .insert({
-        list_id: list.id,
+        list_id: list.list_id,
         name,
-        checked: false,
+        is_favorite: false,
+        bought: false,
         price_info: kupiUrl,
         position: maxPosition + 1,
       })
@@ -352,13 +352,13 @@ export default function ListPage() {
           const fa = a.is_favorite ? 1 : 0;
           const fb = b.is_favorite ? 1 : 0;
           if (fa !== fb) return fb - fa;
-          if (a.checked === b.checked) {
+          if (a.is_favorite === b.is_favorite) {
             const pa = a.position ?? 0;
             const pb = b.position ?? 0;
             if (pa !== pb) return pa - pb;
             return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
           }
-          return a.checked ? 1 : -1;
+          return a.is_favorite ? 1 : -1;
         })
       );
     }
@@ -367,26 +367,26 @@ export default function ListPage() {
   }
 
   async function toggleItem(item: ShoppingItem) {
-    const updatedChecked = !item.checked;
+    const updatedChecked = !item.bought;
     await supabase
       .from("shopping_items")
-      .update({ checked: updatedChecked })
+      .update({ bought: updatedChecked })
       .eq("id", item.id);
 
     setItems((prev) =>
       [...prev]
-        .map((i) => (i.id === item.id ? { ...i, checked: updatedChecked } : i))
+        .map((i) => (i.id === item.id ? { ...i, bought: updatedChecked } : i))
         .sort((a, b) => {
-          const fa = a.is_favorite ? 1 : 0;
-          const fb = b.is_favorite ? 1 : 0;
+          const fa = a.bought ? 1 : 0;
+          const fb = b.bought ? 1 : 0;
           if (fa !== fb) return fb - fa;
-          if (a.checked === b.checked) {
+          if (a.bought === b.bought) {
             const pa = a.position ?? 0;
             const pb = b.position ?? 0;
             if (pa !== pb) return pa - pb;
             return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
           }
-          return a.checked ? 1 : -1;
+          return a.bought ? 1 : -1;
         })
     );
   }
@@ -403,9 +403,9 @@ export default function ListPage() {
 
   async function moveItem(item: ShoppingItem, direction: "up" | "down") {
     setItems((prev) => {
-      const groupKey = `${item.is_favorite ? "fav" : "normal"}-${item.checked ? "checked" : "active"}`;
+      const groupKey = `${item.is_favorite ? "fav" : "normal"}-${item.is_favorite ? "checked" : "active"}`;
       const sameGroup = prev
-        .filter((i) => `${i.is_favorite ? "fav" : "normal"}-${i.checked ? "checked" : "active"}` === groupKey)
+        .filter((i) => `${i.is_favorite ? "fav" : "normal"}-${i.is_favorite ? "checked" : "active"}` === groupKey)
         .sort((a, b) => {
           const pa = a.position ?? 0;
           const pb = b.position ?? 0;
@@ -444,13 +444,13 @@ export default function ListPage() {
         const fa = a.is_favorite ? 1 : 0;
         const fb = b.is_favorite ? 1 : 0;
         if (fa !== fb) return fb - fa;
-        if (a.checked === b.checked) {
+        if (a.is_favorite === b.is_favorite) {
           const pa = a.position ?? 0;
           const pb = b.position ?? 0;
           if (pa !== pb) return pa - pb;
           return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
         }
-        return a.checked ? 1 : -1;
+        return a.is_favorite ? 1 : -1;
       });
     });
   }
@@ -494,7 +494,7 @@ export default function ListPage() {
     await supabase
       .from("shopping_lists")
       .update({ archived_at: new Date().toISOString() })
-      .eq("id", list.id);
+      .eq("id", list.list_id);
     router.push("/lists");
   }
 
@@ -683,13 +683,13 @@ export default function ListPage() {
               <button
                 onClick={() => toggleItem(item)}
                 className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition ${
-                  item.checked
+                  item.bought
                     ? "border-primary-500 bg-primary-500 text-white"
                     : "border-slate-300"
                 }`}
-                aria-label={item.checked ? "Označit jako nenakoupené" : "Označit jako nakoupené"}
+                aria-label={item.bought ? "Označit jako nenakoupené" : "Označit jako nakoupené"}
               >
-                {item.checked && (
+                {item.bought && (
                   <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
@@ -701,6 +701,8 @@ export default function ListPage() {
               <button
                 onClick={async () => {
                   const next = !item.is_favorite;
+                  console.log(next);
+                  console.log(item.id);
                   await supabase
                     .from("shopping_items")
                     .update({ is_favorite: next })
@@ -712,13 +714,13 @@ export default function ListPage() {
                         const fa = a.is_favorite ? 1 : 0;
                         const fb = b.is_favorite ? 1 : 0;
                         if (fa !== fb) return fb - fa;
-                        if (a.checked === b.checked) {
+                        if (a.is_favorite === b.is_favorite) {
                           const pa = a.position ?? 0;
                           const pb = b.position ?? 0;
                           if (pa !== pb) return pa - pb;
                           return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
                         }
-                        return a.checked ? 1 : -1;
+                        return a.is_favorite ? 1 : -1;
                       })
                   );
                 }}
@@ -741,7 +743,7 @@ export default function ListPage() {
   
               {/* 1. ŘÁDEK: Název položky a čas */}
               <div className="flex items-baseline gap-x-2">
-                <div className={`font-medium text-slate-800 ${item.checked ? "line-through text-slate-500" : ""}`}>
+                <div className={`font-medium text-slate-800 ${item.bought ? "line-through text-slate-500" : ""}`}>
                   {item.name}
                 </div>
                 <div className="text-[10px] text-slate-400">

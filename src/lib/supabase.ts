@@ -43,7 +43,7 @@ export type ShoppingItem = {
   id: string;
   list_id: string;
   name: string;
-  checked: boolean;
+  bought: boolean;
   price_info: string | null;
   created_at: string;
   position?: number | null;
