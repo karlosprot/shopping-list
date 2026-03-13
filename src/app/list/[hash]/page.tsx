@@ -4,13 +4,15 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { ShoppingItem, ShoppingList, ItemPrice } from "@/lib/supabase";
+import type { UserListDashboardItem } from "@/lib/supabase";
 
 export default function ListPage() {
   const params = useParams();
   const router = useRouter();
   const hash = params.hash as string;
 
-  const [list, setList] = useState<ShoppingList | null>(null);
+  //const [list, setList] = useState<ShoppingList | null>(null);
+  const [list, setList] = useState<UserListDashboardItem | null>(null);
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
@@ -67,15 +69,14 @@ export default function ListPage() {
         name,
         hash,
         owner_email,
-        archived_at
+        archived_at,
+        created_at
       )
     `)
     .not("shopping_lists", "is", null)
     .eq("shopping_lists.hash", hash)
     .eq("user_email", userEmail)
     .single();
-
-    console.log(listData)
 
     /*const { data: listData } = await supabase
       .from("shopping_lists")
@@ -90,7 +91,8 @@ export default function ListPage() {
     }
 
     setList(listData);
-    setListName(listData.name);
+    setListName(listData.shopping_lists?.name);
+    console.log("tu:" + listData.shopping_lists?.name)
 
     // Zjištění vlastníka a tokenu na klientu
     /*let userEmail: string | null = null;
@@ -104,7 +106,7 @@ export default function ListPage() {
     const ownerEmail = (listData as ShoppingList).owner_email ?? null;
     const isOwnerNow = !ownerEmail || (userEmail !== null && ownerEmail === userEmail);
 
-    if (!isOwnerNow) {
+    /*if (!isOwnerNow) {
       const shareTokenValue = (listData as ShoppingList).share_token ?? null;
       const tokenMatches = !!tokenFromUrl && !!shareTokenValue && tokenFromUrl === shareTokenValue;
       if (!tokenMatches) {
@@ -112,7 +114,7 @@ export default function ListPage() {
         setLoading(false);
         return;
       }
-    }
+    }*/
 
     const permission = (listData as ShoppingList).permission_level ?? "read-only";
     const canEditNow = isOwnerNow || permission === "edit";
@@ -122,7 +124,7 @@ export default function ListPage() {
     const { data: itemsData } = await supabase
       .from("shopping_items")
       .select("*")
-      .eq("list_id", listData.id)
+      .eq("list_id", listData.list_id)
       .order("checked", { ascending: true })
       .order("position", { ascending: true, nullsFirst: true })
       .order("created_at", { ascending: true });
@@ -185,6 +187,7 @@ export default function ListPage() {
 
   useEffect(() => {
     if (!list?.id) return;
+    console.log(list.shopping_lists?.name)
 
     const channel = supabase
       .channel(`list-${hash}`)
@@ -525,10 +528,11 @@ export default function ListPage() {
           ) : (
             <button onClick={() => setEditingName(true)} className="text-left w-full">
               <h1 className="text-xl font-bold text-slate-800 truncate">
-                {list?.name || "Seznam"}
-                {list?.created_at && (
+                
+                {list.shopping_lists?.name || "Seznam"}
+                {list.shopping_lists?.created_at && (
                   <span className="ml-1 text-sm font-normal text-slate-500">
-                    ({formatDateShort(list.created_at)})
+                    ({formatDateShort(list.shopping_lists?.created_at)})
                   </span>
                 )}
               </h1>
@@ -572,7 +576,7 @@ export default function ListPage() {
                       .from("shopping_lists")
                       .update({ permission_level: nextPermission })
                       .eq("id", list.id);
-                    const updated: ShoppingList = {
+                    const updated: UserListDashboardItem = {
                       ...list,
                       permission_level: nextPermission as "read-only" | "edit",
                     };

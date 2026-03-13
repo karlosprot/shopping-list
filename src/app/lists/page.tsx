@@ -102,7 +102,8 @@ export default function ListsPage() {
           name,
           hash,
           owner_email,
-          archived_at
+          archived_at,
+          created_at
         )
       `)
       .eq("user_email", userEmail)
