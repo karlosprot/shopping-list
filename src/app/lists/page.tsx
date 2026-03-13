@@ -4,11 +4,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { ShoppingList } from "@/lib/supabase";
+
+import type { UserListDashboardItem } from "@/lib/supabase";
 import { nanoid } from "nanoid";
 
 export default function ListsPage() {
   const router = useRouter();
-  const [lists, setLists] = useState<ShoppingList[]>([]);
+  //const [lists, setLists] = useState<ShoppingList[]>([]);
+  const [lists, setLists] = useState<UserListDashboardItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
@@ -51,11 +54,11 @@ export default function ListsPage() {
     };
   }, []);
 
-  async function loadLists() {
+  /*async function loadLists() {
     const { data: listData } = await supabase
-      .from("shopping_lists")
+      .from("list_access")
       .select("*")
-      .is("archived_at", null)
+      .is("user_email", currentUserEmail)
       .order("created_at", { ascending: false });
 
     const { data: itemsData } = await supabase
@@ -86,9 +89,65 @@ export default function ListsPage() {
     });
     setLists(sorted);
     setLoading(false);
+  }*/
+
+  async function loadLists() {
+    const userEmail =
+      typeof window !== "undefined" ? window.localStorage.getItem("userEmail") : null;
+    const { data: listData } = await supabase
+      .from("list_access")
+      .select(`
+        *,
+        shopping_lists (
+          name,
+          hash,
+          owner_email,
+          archived_at
+        )
+      `)
+      .eq("user_email", userEmail)
+      .is("shopping_lists.archived_at", null)
+      .order("position", { ascending: false });
+
+    const { data: itemsData } = await supabase
+      .from("shopping_items")
+      .select("list_id, checked");
+
+    const listIdsWithItems = new Set<string>();
+    const listIdsWithUnchecked = new Set<string>();
+    for (const row of itemsData || []) {
+      const listId = (row as { list_id: string }).list_id;
+      listIdsWithItems.add(listId);
+      if (!(row as { checked: boolean }).checked) listIdsWithUnchecked.add(listId);
+    }
+    const allBought = new Set<string>();
+    listIdsWithItems.forEach((id) => {
+      if (!listIdsWithUnchecked.has(id)) allBought.add(id);
+    });
+    setAllBoughtListIds(allBought);
+
+    // 3. Finální seřazení
+    const sorted = (listData || []).sort((a, b) => {
+      // POZOR: Tady používáme a.list_id (pokud ho máš v list_access) nebo a.list_hash
+      const aAllBought = allBought.has(a.list_id); 
+      const bAllBought = allBought.has(b.list_id);
+      
+      if (aAllBought !== bAllBought) return aAllBought ? 1 : -1;
+      
+      // Použijeme tvé sloupce z list_access
+      const fa = a.is_favorite ? 1 : 0;
+      const fb = b.is_favorite ? 1 : 0;
+      if (fa !== fb) return fb - fa;
+      
+      // Pokud chceš držet původní řazení, můžeš, ale position už by to mělo řešit
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+
+    setLists(sorted as unknown as UserListDashboardItem[]);
+    setLoading(false);
   }
 
-  async function createList() {
+  /*async function createList() {
     const hash = nanoid(10);
     const ownerEmail =
       typeof window !== "undefined" ? window.localStorage.getItem("userEmail") : null;
@@ -105,22 +164,68 @@ export default function ListsPage() {
       .select()
       .single();
     if (data) router.push(`/list/${data.hash}`);
+  }*/
+
+    async function createList() {
+    const hash = nanoid(10);
+    const ownerEmail =
+      typeof window !== "undefined" ? window.localStorage.getItem("userEmail") : null;
+    const shareToken = nanoid(16);
+    const { data } = await supabase
+      .from("shopping_lists")
+      .insert({
+        hash,
+        name: "Nový seznam",
+        owner_email: ownerEmail,
+        share_token: shareToken,
+        permission_level: "read-only",
+      })
+      .select()
+      .single();
+
+      // 2. Vytvoření přístupu (pro majitele)
+      await supabase.from("list_access").insert({
+        list_id: data.id, // Tady použijeme ID, které právě vzniklo
+        user_email: ownerEmail,        
+        share_token: shareToken,
+        permission_level: "owner",
+        position: 0, // nebo poslední známá pozice
+        is_favorite: false,
+      });
+
+      // 2. Vytvoření přístupu (pro Elišku / Karla natvrdo)
+      // 1. Připravíme si email pro zápis (logika přepsání)
+      const emailToSave = ownerEmail === "karlosprot@gmail.com" ? "eliska.hoffmannova3@gmail.com" : ownerEmail;
+
+      await supabase.from("list_access").insert({
+        list_id: data.id, // Tady použijeme ID, které právě vzniklo
+        user_email: emailToSave,        
+        share_token: shareToken,
+        permission_level: "edit",
+        position: 0, // nebo poslední známá pozice
+        is_favorite: false,
+      });
+
+    if (data) router.push(`/list/${data.hash}`);
   }
 
-  async function deleteList(list: ShoppingList) {
-    const confirmed = confirm(`Opravdu smazat seznam "${list.name}"?`);
+  async function deleteList(list: UserListDashboardItem) {
+    const confirmed = confirm(`Opravdu smazat seznam "${list.shopping_lists?.name}"?`);
     if (!confirmed) return;
 
-    await supabase.from("shopping_lists").delete().eq("id", list.id);
+    await supabase.from("access_list").delete().eq("list_id", list.list_id);
     await loadLists();
   }
 
-  async function shareList(list: ShoppingList) {
+  async function shareList(list: UserListDashboardItem) {
+
     const query = list.share_token ? `?token=${list.share_token}` : "";
+    // Hash nyní bereme z vnořeného objektu
+    const listHash = list.shopping_lists?.hash;   
     const url =
       typeof window !== "undefined"
-        ? `${window.location.origin}/list/${list.hash}${query}`
-        : `/list/${list.hash}${query}`;
+        ? `${window.location.origin}/list/${listHash}${query}`
+        : `/list/${listHash}${query}`;
 
     if (typeof navigator?.share === "function") {
       try {
@@ -194,7 +299,7 @@ export default function ListsPage() {
                   e.stopPropagation();
                   const next = !list.is_favorite;
                   supabase
-                    .from("shopping_lists")
+                    .from("access_list")
                     .update({ is_favorite: next })
                     .eq("id", list.id)
                     .then(() => {
@@ -205,7 +310,9 @@ export default function ListsPage() {
                             const fa = a.is_favorite ? 1 : 0;
                             const fb = b.is_favorite ? 1 : 0;
                             if (fa !== fb) return fb - fa;
-                            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+                            
+                            // Tady bacha na to Date - musí tam být created_at!
+                            return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
                           })
                       );
                     });
@@ -224,19 +331,27 @@ export default function ListsPage() {
                 )}
               </button>
               <button
-                onClick={() => router.push(`/list/${list.hash}`)}
+                onClick={() => router.push(`/list/${list.shopping_lists?.hash}`)}
                 className="flex flex-1 items-center justify-between text-left min-w-0"
               >
                 <span
                   className={`font-medium truncate ${
                     allBoughtListIds.has(list.id)
-                      ? "line-through text-slate-500"
+                      ? "text-slate-500"
                       : "text-slate-800"
                   }`}
                 >
-                  {list.name}
+                  <span
+                    className={`font-medium truncate ${
+                      allBoughtListIds.has(list.id)
+                        ? "line-through"
+                        : ""
+                    }`}
+                  >
+                    {list.shopping_lists?.name}
+                  </span>
                   <span className="ml-1 text-xs font-normal text-slate-500">
-                    ({formatListDate(list.created_at)})
+                    ({formatListDate(list.shopping_lists?.created_at)})
                   </span>
                 </span>
                 <span className="ml-2 text-slate-400 shrink-0">›</span>

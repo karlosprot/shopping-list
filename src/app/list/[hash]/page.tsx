@@ -55,6 +55,7 @@ export default function ListPage() {
   }
 
   const loadList = useCallback(async () => {
+
     const { data: listData } = await supabase
       .from("shopping_lists")
       .select("*")
