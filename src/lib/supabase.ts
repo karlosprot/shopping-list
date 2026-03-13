@@ -21,21 +21,21 @@ export type ShoppingList = {
 export type listsAccess = {
   id: string;
   list_id: string;
-  name: string;
-  hash: string;
   user_email: string;
   permission_level: "owner" | "read-only" | "edit";
   share_token: string | null;
   position: number;
   is_favorite: boolean;
-  created_at: string;
 };
 
 // Kombinovaný typ pro dashboard
 export type UserListDashboardItem = listsAccess & {
   shopping_lists: {
+    name: string;
+    hash: string;
     owner_email: string | null; // Nyní taháme odsud    
     archived_at: string | null;
+    created_at: string;
   } | null;
 };
 

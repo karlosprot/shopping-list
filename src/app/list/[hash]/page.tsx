@@ -455,10 +455,36 @@ export default function ListPage() {
     });
   }
 
-  async function saveListName() {
+  /*async function saveListName() {
     if (!list || !listName.trim()) return;
     await supabase.from("shopping_lists").update({ name: listName.trim() }).eq("id", list.id);
     setList({ ...list, name: listName.trim() });
+    setEditingName(false);
+  }*/
+
+  async function saveListName() {
+    if (!list || !listName.trim()) return;
+  
+    const newName = listName.trim();
+  
+    // 1. Update v databázi (pokud máš správně nastavený eq("id", list.list_id))
+    await supabase
+      .from("shopping_lists")
+      .update({ name: newName })
+      .eq("id", list.list_id); // Použij list_id, ne list.id
+  
+    // 2. Update lokálního stavu
+    setList((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        shopping_lists: {
+          ...prev.shopping_lists!, // Rozbalíme stávající vnořený objekt
+          name: newName           // Přepíšeme jen jméno
+        }
+      };
+    });
+  
     setEditingName(false);
   }
 
@@ -549,7 +575,7 @@ export default function ListPage() {
                 if (typeof navigator?.share === "function") {
                   try {
                     await navigator.share({
-                      title: list?.name || "Nákupní seznam",
+                      title: list?.shopping_lists?.name || "Nákupní seznam",
                       url,
                     });
                     return;
