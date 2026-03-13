@@ -213,7 +213,7 @@ export default function ListsPage() {
     const confirmed = confirm(`Opravdu smazat seznam "${list.shopping_lists?.name}"?`);
     if (!confirmed) return;
 
-    await supabase.from("access_list").delete().eq("list_id", list.list_id);
+    await supabase.from("shopping_lists").delete().eq("id", list.list_id);
     await loadLists();
   }
 
