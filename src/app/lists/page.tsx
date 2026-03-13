@@ -230,7 +230,7 @@ export default function ListsPage() {
 
     if (typeof navigator?.share === "function") {
       try {
-        await navigator.share({ title: list.name, url });
+        await navigator.share({ title: list?.shopping_lists?.name, url });
         return;
       } catch {
         // fallback to clipboard
@@ -239,8 +239,8 @@ export default function ListsPage() {
 
     try {
       await navigator.clipboard?.writeText(url);
-      setCopiedHash(list.hash);
-      window.setTimeout(() => setCopiedHash((h) => (h === list.hash ? null : h)), 1500);
+      setCopiedHash(list?.shopping_lists?.hash ?? "");
+      window.setTimeout(() => setCopiedHash((h) => (h === list?.shopping_lists?.hash ? null : h)), 1500);
     } catch {
       alert("Nepodařilo se zkopírovat odkaz.");
     }
@@ -313,7 +313,7 @@ export default function ListsPage() {
                             if (fa !== fb) return fb - fa;
                             
                             // Tady bacha na to Date - musí tam být created_at!
-                            return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+                            return new Date(b?.shopping_lists?.created_at || 0).getTime() - new Date(a?.shopping_lists?.created_at || 0).getTime();
                           })
                       );
                     });
@@ -352,7 +352,7 @@ export default function ListsPage() {
                     {list.shopping_lists?.name}
                   </span>
                   <span className="ml-1 text-xs font-normal text-slate-500">
-                    ({formatListDate(list.shopping_lists?.created_at)})
+                    ({formatListDate(list?.shopping_lists?.created_at ?? "")})
                   </span>
                 </span>
                 <span className="ml-2 text-slate-400 shrink-0">›</span>
