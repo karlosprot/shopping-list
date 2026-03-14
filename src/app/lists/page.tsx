@@ -311,10 +311,7 @@ export default function ListsPage() {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  const next = !list.is_favorite;                    
-                  console.log(list);
-                  console.log(next);                  
-                  console.log(list.id);
+                  const next = !list.is_favorite;    
                   supabase
                     .from("list_access")
                     .update({ is_favorite: next })
@@ -324,13 +321,35 @@ export default function ListsPage() {
                         prev
                           .map((l) => (l.id === list.id ? { ...l, is_favorite: next } : l))
                           .sort((a, b) => {
+                            // 1. Úroveň: Jsou "hotové" (v allBoughtListIds)? 
+                            // Hotové (true) chceme mít až dole, nehotové (false) nahoře.
+                            const aDone = allBoughtListIds.has(a.list_id);
+                            const bDone = allBoughtListIds.has(b.list_id);
+                            if (aDone !== bDone) return aDone ? 1 : -1;
+                          
+                            // 2. Úroveň: Oblíbené (is_favorite)
+                            // Favorité (true) nahoru, ostatní (false) dolů.
+                            if (a.is_favorite !== b.is_favorite) return b.is_favorite ? 1 : -1;
+                          
+                            // 3. Úroveň: Pozice (list.position)
+                            // Předpokládám, že vyšší číslo znamená vyšší prioritu
+                            const pa = a.position ?? 0;
+                            const pb = b.position ?? 0;
+                            if (pa !== pb) return pb - pa; 
+                          
+                            // 4. Úroveň: Datum vytvoření (nejnovější nahoru)
+                            const timeA = new Date(a?.shopping_lists?.created_at || 0).getTime();
+                            const timeB = new Date(b?.shopping_lists?.created_at || 0).getTime();
+                            return timeB - timeA;
+                          })
+                          /*.sort((a, b) => {
                             const fa = a.is_favorite ? 1 : 0;
                             const fb = b.is_favorite ? 1 : 0;
                             if (fa !== fb) return fb - fa;
                             
                             // Tady bacha na to Date - musí tam být created_at!
                             return new Date(b?.shopping_lists?.created_at || 0).getTime() - new Date(a?.shopping_lists?.created_at || 0).getTime();
-                          })
+                          })*/
                       );
                     });
                 }}
