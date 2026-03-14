@@ -47,7 +47,7 @@ export type ShoppingItem = {
   price_info: string | null;
   created_at: string;
   position?: number | null;
-  is_favorite?: boolean | null;
+  is_favorite: boolean;
 };
 
 export type ItemPrice = {

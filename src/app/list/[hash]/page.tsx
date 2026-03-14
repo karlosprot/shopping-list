@@ -124,9 +124,10 @@ export default function ListPage() {
       .from("shopping_items")
       .select("*")
       .eq("list_id", listData.list_id)
+      .order("bought", { ascending: false })
       .order("is_favorite", { ascending: true })
       .order("position", { ascending: true, nullsFirst: true })
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: false });
 
     const resolvedItems = (itemsData || []).sort((a, b) => {
       const fa = (a as ShoppingItem).is_favorite ? 1 : 0;
@@ -336,7 +337,7 @@ export default function ListPage() {
         is_favorite: false,
         bought: false,
         price_info: kupiUrl,
-        position: maxPosition + 1,
+        position: 0,
       })
       .select()
       .single();
@@ -366,29 +367,38 @@ export default function ListPage() {
     setInput("");
   }
 
-  async function toggleItem(item: ShoppingItem) {
-    const updatedChecked = !item.bought;
+  async function toggleItem(item: ShoppingItem, updatedChecked: boolean, updatedFavorite: boolean) {
+    
+
+
     await supabase
       .from("shopping_items")
-      .update({ bought: updatedChecked })
+      .update({ bought: updatedChecked, is_favorite: updatedFavorite })
       .eq("id", item.id);
-
-    setItems((prev) =>
+    
+    setItems((prev) =>      
       [...prev]
-        .map((i) => (i.id === item.id ? { ...i, bought: updatedChecked } : i))
+        .map((i) => (i.id === item.id ? { ...i, bought: updatedChecked, is_favorite: updatedFavorite } : i))
         .sort((a, b) => {
-          const fa = a.bought ? 1 : 0;
-          const fb = b.bought ? 1 : 0;
-          if (fa !== fb) return fb - fa;
+          const ba = a.bought ? 1 : 0;
+          const bb = b.bought ? 1 : 0;
+          if (ba !== bb) return ba - bb;
           if (a.bought === b.bought) {
-            const pa = a.position ?? 0;
-            const pb = b.position ?? 0;
-            if (pa !== pb) return pa - pb;
-            return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+            const fa = a.is_favorite ? 1 : 0;
+            const fb = b.is_favorite ? 1 : 0;
+            if (fa !== fb) return fb - fa;
+            if (a.is_favorite === b.is_favorite) {
+              const pa = a.position ?? 0;
+              const pb = b.position ?? 0;
+              if (pa !== pb) return pa - pb;
+              return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+            }
+            return a.is_favorite ? 1 : -1;
           }
           return a.bought ? 1 : -1;
         })
     );
+    //console.log(items);
   }
 
   async function deleteItem(item: ShoppingItem) {
@@ -681,7 +691,7 @@ export default function ListPage() {
             {/* 1. Radiobutton (bought) */}
             {canEdit && (
               <button
-                onClick={() => toggleItem(item)}
+                onClick={() => toggleItem(item, !item.bought, item.is_favorite)}
                 className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition ${
                   item.bought
                     ? "border-primary-500 bg-primary-500 text-white"
@@ -699,7 +709,8 @@ export default function ListPage() {
             {/* 2. Hvězdička (oblíbené) */}
             {canEdit && (
               <button
-                onClick={async () => {
+                onClick={() => toggleItem(item, item.bought, !item.is_favorite)}
+                /*onClick={async () => {
                   const next = !item.is_favorite;
                   console.log(next);
                   console.log(item.id);
@@ -723,7 +734,7 @@ export default function ListPage() {
                         return a.is_favorite ? 1 : -1;
                       })
                   );
-                }}
+                }}*/
                 className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-transparent text-yellow-400 hover:text-yellow-500"
                 aria-label={item.is_favorite ? "Odebrat z oblíbených" : "Přidat do oblíbených"}
               >
