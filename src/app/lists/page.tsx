@@ -113,20 +113,23 @@ export default function ListsPage() {
       `)
       .eq("user_email", userEmail)
       .is("shopping_lists.archived_at", null)
+      .not("shopping_lists", "is", null)
       .order("position", { ascending: false });
-      //.order("shopping_lists.created_at", { ascending: false });
+
+      console.log(listData);
 
     const { data: itemsData } = await supabase
       .from("shopping_items")
-      .select("list_id, is_favorite");
+      .select("list_id, bought");
 
     const listIdsWithItems = new Set<string>();
     const listIdsWithUnchecked = new Set<string>();
     for (const row of itemsData || []) {
       const listId = (row as { list_id: string }).list_id;
       listIdsWithItems.add(listId);
-      if (!(row as { is_favorite: boolean }).is_favorite) listIdsWithUnchecked.add(listId);
-    }
+      if (!(row as {bought: boolean }).bought) listIdsWithUnchecked.add(listId);
+    } 
+
     const allBought = new Set<string>();
     listIdsWithItems.forEach((id) => {
       if (!listIdsWithUnchecked.has(id)) allBought.add(id);
@@ -350,14 +353,14 @@ export default function ListsPage() {
               >
                 <span
                   className={`font-medium truncate ${
-                    allBoughtListIds.has(list.id)
+                    allBoughtListIds.has(list.list_id)
                       ? "text-slate-500"
                       : "text-slate-800"
                   }`}
                 >
                   <span
                     className={`font-medium truncate ${
-                      allBoughtListIds.has(list.id)
+                      allBoughtListIds.has(list.list_id)
                         ? "line-through"
                         : ""
                     }`}
