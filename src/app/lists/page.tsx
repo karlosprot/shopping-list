@@ -114,6 +114,7 @@ export default function ListsPage() {
       .eq("user_email", userEmail)
       .is("shopping_lists.archived_at", null)
       .order("position", { ascending: false });
+      //.order("shopping_lists.created_at", { ascending: false });
 
     const { data: itemsData } = await supabase
       .from("shopping_items")
@@ -201,7 +202,9 @@ export default function ListsPage() {
 
       // 2. Vytvoření přístupu (pro Elišku / Karla natvrdo)
       // 1. Připravíme si email pro zápis (logika přepsání)
-      const emailToSave = ownerEmail === "karlosprot@gmail.com" ? "eliska.hoffmannova3@gmail.com" : ownerEmail;
+      const emailToSave = ownerEmail === "karlosprot@gmail.com" ? "eliska.hoffmannova3@gmail.com" : "karlosprot@gmail.com";
+
+      console.log(emailToSave, ownerEmail);
 
       await supabase.from("list_access").insert({
         list_id: data.id, // Tady použijeme ID, které právě vzniklo
@@ -211,6 +214,8 @@ export default function ListsPage() {
         position: 0, // nebo poslední známá pozice
         is_favorite: false,
       });
+
+      console.log(lists);
 
     if (data) router.push(`/list/${data.hash}`);
   }
