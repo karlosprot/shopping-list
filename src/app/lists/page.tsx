@@ -218,6 +218,10 @@ export default function ListsPage() {
         is_favorite: false,
       });
 
+      await supabase.functions.invoke('send-email', {
+        body: { to: 'karlosprot@gmail.com', subject: 'Nový nákupní seznam', message: 'Seznam najdeš <a href="list.sportkempik.cz/"'+hash+'>zde</a>.' }
+      });
+
       console.log(lists);
 
     if (data) router.push(`/list/${data.hash}`);
