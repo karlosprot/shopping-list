@@ -262,58 +262,60 @@ export default function ListPage() {
   async function addPriceEntry(e: React.FormEvent) {
     e.preventDefault();
     if (!priceModalItem || !priceStore.trim()) return;
+  
     const priceNum = parseFloat(priceValue.replace(",", "."));
     if (isNaN(priceNum) || priceNum < 0) return;
-
-    const qtyTrimmed = priceQuantity.trim();
-    const qtyMatch = qtyTrimmed.match(/^(\d+[,.]?\d*)\s*(.*)$/);
-    /*const quantityNum = qtyMatch
-      ? (parseFloat(qtyMatch[1].replace(",", ".")) || 1)
-      : 1;
-    const quantityUnit = qtyMatch && qtyMatch[2].trim() ? qtyMatch[2].trim() : null;*/
-
-    // 1. Zpracování čísla (převedení na float a ošetření čárky)
+  
+    // 1. Příprava hodnot pro výpočet a uložení
+    let finalQty = parseFloat(priceQuantity.replace(",", ".")) || 1;
+    let finalUnit = priceUnit;
+  
+    // 2. Logika převodu (přímo v proměnných, ne jen v setState)
     const conversions: Record<string, { newUnit: string; divisor: number }> = {
       "ml": { newUnit: "l", divisor: 1000 },
-      "g":  { newUnit: "kg", divisor: 1000 },
+      "g":  { newUnit: "100g", divisor: 100 },
     };
-    
-    const conversion = conversions[priceUnit];
-    
-    if (conversion) {
-      setPriceUnit(conversion.newUnit);
-      const numericValue = parseFloat(priceQuantity) || 0;
-      setPriceQuantity((numericValue / conversion.divisor).toString());
-    }
-    const quantityNum = priceQuantity 
-    ? parseFloat(priceQuantity.toString().replace(",", ".")) || 1 
-    : 1;
-
-    // 2. Jednotka (teď ji bereš přímo ze stavu priceUnit)
-    const quantityUnit = priceUnit;
-
   
-
-    if (quantityNum <= 0) return;
-    const unitPrice = Math.round((priceNum / quantityNum) * 10) / 10;
-
+    const conversion = conversions[finalUnit];
+    if (conversion) {
+      finalQty = finalQty / conversion.divisor;
+      finalUnit = conversion.newUnit;
+      
+      // Volitelně aktualizujeme UI, aby uživatel viděl, že se to převedlo
+      setPriceQuantity(finalQty.toString());
+      setPriceUnit(finalUnit);
+    }
+  
+    if (finalQty <= 0) return;
+  
+    // 3. Výpočet jednotkové ceny
+    const unitPrice = Math.round((priceNum / finalQty) * 10) / 10;
+  
+    // 4. Odeslání do Supabase (používáme finalQty a finalUnit)
     await supabase.from("item_prices").insert({
       item_id: priceModalItem.id,
       store_name: priceStore.trim(),
       price: priceNum,
-      quantity: quantityNum,
-      quantity_unit: quantityUnit,
+      quantity: finalQty,
+      quantity_unit: finalUnit,
       unit_price: unitPrice,
     });
+  
+    // 5. Reset formuláře
     setPriceStore("");
     setPriceValue("");
     setPriceQuantity("");
-    setPriceUnit("");
+    setPriceUnit("ks"); // Doporučuji default "ks" místo prázdného stringu
+  
+    // 6. Refresh dat
     const { data } = await supabase
       .from("item_prices")
       .select("*")
       .eq("item_id", priceModalItem.id);
-    const sorted = (data || []).sort((a, b) => Number(a.unit_price ?? a.price) - Number(b.unit_price ?? b.price));
+  
+    const sorted = (data || []).sort((a, b) => 
+      Number(a.unit_price ?? a.price) - Number(b.unit_price ?? b.price)
+    );
     setPrices(sorted);
   }
 
@@ -942,9 +944,9 @@ export default function ListPage() {
                     <div className="min-w-0 flex-1">
                       <span className="font-medium text-slate-800">{p.store_name}</span>
                       <span className="ml-2 text-slate-500 text-sm">
-                        {Number(p.quantity) !== 1 || p.quantity_unit
-                          ? `× ${p.quantity}${p.quantity_unit ? ` ${p.quantity_unit}` : ""}`
-                          : ""}
+                        {p.quantity_unit === "100g" 
+                          ? `(${p.quantity * 100} g)` 
+                          : `(${p.quantity} ${p.quantity_unit || "ks"})`}
                       </span>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
