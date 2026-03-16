@@ -30,6 +30,8 @@ export default function ListPage() {
   const [isOwner, setIsOwner] = useState(true);
   const [canEdit, setCanEdit] = useState(true);
 
+  const [priceUnit, setPriceUnit] = useState("ks");
+
   function formatCzk(value: number) {
     const rounded = Math.round(value * 10) / 10;
     const asInt = Math.round(rounded);
@@ -137,7 +139,7 @@ export default function ListPage() {
         const pa = (a as ShoppingItem).position ?? 0;
         const pb = (b as ShoppingItem).position ?? 0;
         if (pa !== pb) return pa - pb;
-        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        return new Date(b.created_at).getTime(); - new Date(a.created_at).getTime();
       }
       return a.bought ? 1 : -1;
     });
@@ -265,10 +267,33 @@ export default function ListPage() {
 
     const qtyTrimmed = priceQuantity.trim();
     const qtyMatch = qtyTrimmed.match(/^(\d+[,.]?\d*)\s*(.*)$/);
-    const quantityNum = qtyMatch
+    /*const quantityNum = qtyMatch
       ? (parseFloat(qtyMatch[1].replace(",", ".")) || 1)
       : 1;
-    const quantityUnit = qtyMatch && qtyMatch[2].trim() ? qtyMatch[2].trim() : null;
+    const quantityUnit = qtyMatch && qtyMatch[2].trim() ? qtyMatch[2].trim() : null;*/
+
+    // 1. Zpracování čísla (převedení na float a ošetření čárky)
+    const conversions: Record<string, { newUnit: string; divisor: number }> = {
+      "ml": { newUnit: "l", divisor: 1000 },
+      "g":  { newUnit: "kg", divisor: 1000 },
+    };
+    
+    const conversion = conversions[priceUnit];
+    
+    if (conversion) {
+      setPriceUnit(conversion.newUnit);
+      const numericValue = parseFloat(priceQuantity) || 0;
+      setPriceQuantity((numericValue / conversion.divisor).toString());
+    }
+    const quantityNum = priceQuantity 
+    ? parseFloat(priceQuantity.toString().replace(",", ".")) || 1 
+    : 1;
+
+    // 2. Jednotka (teď ji bereš přímo ze stavu priceUnit)
+    const quantityUnit = priceUnit;
+
+  
+
     if (quantityNum <= 0) return;
     const unitPrice = Math.round((priceNum / quantityNum) * 10) / 10;
 
@@ -283,6 +308,7 @@ export default function ListPage() {
     setPriceStore("");
     setPriceValue("");
     setPriceQuantity("");
+    setPriceUnit("");
     const { data } = await supabase
       .from("item_prices")
       .select("*")
@@ -872,14 +898,29 @@ export default function ListPage() {
                 placeholder="Cena v Kč"
                 className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 placeholder-slate-400"
               />
-              <input
-                type="text"
-                //inputMode="decimal"
-                value={priceQuantity}
-                onChange={(e) => setPriceQuantity(e.target.value)}
-                placeholder="Množství: počet, kg (výchozí 1)"
-                className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 placeholder-slate-400"
-              />
+              {/* Kontejner pro Množství a Jednotku vedle sebe */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  inputMode="decimal" // Tady ho klidně nech, pro číslo se hodí
+                  value={priceQuantity}
+                  onChange={(e) => setPriceQuantity(e.target.value)}
+                  placeholder="Množství (např. 1)"
+                  className="flex-[2] rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800 placeholder-slate-400"
+                />
+                
+                <select
+                  value={priceUnit} // Nezapomeň si vytvořit stav [priceUnit, setPriceUnit]
+                  onChange={(e) => setPriceUnit(e.target.value)}
+                  className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-800"
+                >
+                  <option value="ks">ks</option>
+                  <option value="kg">kg</option>
+                  <option value="g">g</option>
+                  <option value="l">l</option>
+                  <option value="ml">ml</option>
+                </select>
+              </div>
               <button
                 type="submit"
                 disabled={!priceStore.trim()}
@@ -911,7 +952,7 @@ export default function ListPage() {
                         {p.price} Kč
                         {Number(p.quantity) !== 1 && (
                           <span className="ml-1 font-normal text-slate-500">
-                            →
+                            →         
                             {` ${Number(p.unit_price ?? p.price)} Kč/${p.quantity_unit || "ks"}`}
                           </span>
                         )}
