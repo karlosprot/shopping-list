@@ -874,7 +874,7 @@ export default function ListPage() {
               />
               <input
                 type="text"
-                inputMode="decimal"
+                //inputMode="decimal"
                 value={priceQuantity}
                 onChange={(e) => setPriceQuantity(e.target.value)}
                 placeholder="Množství: počet, kg (výchozí 1)"
